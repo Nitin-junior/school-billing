@@ -11,6 +11,10 @@ import {
 } from "@/lib/callmebot";
 import { formatADDate } from "@/lib/nepali-date";
 
+type ParentWhatsapp = { whatsappActivated: boolean; callmebotApiKey?: string; phone: string; name?: string };
+type PopulatedStudentForNotify = { _id: { toString(): string }; name: string; className: string; parentId: ParentWhatsapp };
+type PopulatedInvoiceNotify = { _id: { toString(): string }; studentId: PopulatedStudentForNotify; paidAmount: number; invoiceNumber: string };
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -103,19 +107,17 @@ export async function POST(request: NextRequest) {
       }
     } else if (type === "payment-confirm") {
       const { invoiceId, amountPaid, receiptNumber } = body;
-      const invoice = await Invoice.findById(invoiceId)
+      const raw = await Invoice.findById(invoiceId)
         .populate({
           path: "studentId",
           select: "name className parentId",
           populate: { path: "parentId", select: "name whatsappActivated callmebotApiKey phone" },
         })
         .lean();
+      const invoice = raw as PopulatedInvoiceNotify | null;
 
       if (invoice) {
-        const student = invoice.studentId as unknown as {
-          _id: string; name: string; className: string;
-          parentId: { whatsappActivated: boolean; callmebotApiKey?: string; phone: string };
-        };
+        const student = invoice.studentId;
         if (student?.parentId?.whatsappActivated && student?.parentId?.callmebotApiKey) {
           const message = paymentConfirmMessage(
             student.name,
