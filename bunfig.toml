@@ -1,0 +1,9 @@
+[install]
+# Use the registry for all packages
+registry = "https://registry.npmjs.org"
+# Auto-install peer dependencies
+peer = true
+
+[run]
+# Use bun for running scripts
+bun = true
