@@ -206,6 +206,10 @@ export default function LoginPage() {
         google_no_email: 'Your Google account has no email on file with Google.',
         google_invalid_state: 'Session expired. Please try Google sign-in again.',
         google_missing_code: 'Google did not return a code. Please try again.',
+        google_db_not_configured:
+          'Server database is not configured. In Vercel add MONGODB_URI (same as your database connection string) and redeploy.',
+        google_server_error:
+          'Sign-in hit a server error. If it continues, check Vercel logs; ensure MONGODB_URI, JWT_SECRET, and Google env vars are set.',
       };
       setUrlError(map[err] ?? `Sign-in error: ${err.replace(/^google_/, '')}`);
       window.history.replaceState({}, '', window.location.pathname);

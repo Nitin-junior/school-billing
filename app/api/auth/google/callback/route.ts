@@ -14,6 +14,9 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-change-in-production"
 );
 
+/** Mongoose requires Node.js (not Edge). */
+export const runtime = "nodejs";
+
 function loginRedirect(error?: string) {
   const base = getAppBaseUrl();
   const u = new URL("/login", base);
@@ -56,62 +59,73 @@ export async function GET(req: NextRequest) {
     return loginRedirect("google_token_failed");
   }
 
-  await connectDB();
-  const email = profile.email;
-
-  let phone = "";
-  let name = profile.name;
-  let parentId: string | undefined;
-  let userId: string | undefined;
-  let sessionRole: "admin" | "teacher" | "parent" = role;
-
-  if (role === "parent") {
-    const parent = await Parent.findOne({
-      email: { $regex: new RegExp(`^${escapeRegex(email)}$`, "i") },
-    }).lean() as { _id: unknown; name: string; phone: string } | null;
-    if (!parent) {
-      return loginRedirect("google_parent_email_not_registered");
-    }
-    phone = parent.phone;
-    name = parent.name || name;
-    parentId = String(parent._id);
-  } else {
-    const user = await User.findOne({
-      email: { $regex: new RegExp(`^${escapeRegex(email)}$`, "i") },
-      isActive: true,
-    }).lean() as { _id: unknown; name: string; phone: string; role: string } | null;
-    if (!user) {
-      return loginRedirect("google_staff_email_not_registered");
-    }
-    phone = user.phone;
-    name = user.name || name;
-    userId = String(user._id);
-    if (user.role === "admin") sessionRole = "admin";
-    else sessionRole = "teacher";
+  if (!process.env.MONGODB_URI?.trim()) {
+    console.error("Google OAuth callback: MONGODB_URI is not set");
+    return loginRedirect("google_db_not_configured");
   }
 
-  const token = await new SignJWT({
-    phone,
-    role: sessionRole,
-    parentId,
-    userId,
-    name,
-    email,
-  })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+  const email = profile.email;
 
-  const dest = sessionRole === "parent" ? "/parent" : "/dashboard";
-  const res = NextResponse.redirect(new URL(dest, base));
-  res.cookies.set("session", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 604800,
-    path: "/",
-    sameSite: "lax",
-  });
-  return res;
+  try {
+    await connectDB();
+
+    let phone = "";
+    let name = profile.name;
+    let parentId: string | undefined;
+    let userId: string | undefined;
+    let sessionRole: "admin" | "teacher" | "parent" = role;
+
+    if (role === "parent") {
+      const parent = await Parent.findOne({
+        email: { $regex: new RegExp(`^${escapeRegex(email)}$`, "i") },
+      }).lean() as { _id: unknown; name: string; phone: string } | null;
+      if (!parent) {
+        return loginRedirect("google_parent_email_not_registered");
+      }
+      phone = parent.phone;
+      name = parent.name || name;
+      parentId = String(parent._id);
+    } else {
+      const user = await User.findOne({
+        email: { $regex: new RegExp(`^${escapeRegex(email)}$`, "i") },
+        isActive: true,
+      }).lean() as { _id: unknown; name: string; phone: string; role: string } | null;
+      if (!user) {
+        return loginRedirect("google_staff_email_not_registered");
+      }
+      phone = user.phone;
+      name = user.name || name;
+      userId = String(user._id);
+      if (user.role === "admin") sessionRole = "admin";
+      else sessionRole = "teacher";
+    }
+
+    const token = await new SignJWT({
+      phone,
+      role: sessionRole,
+      parentId,
+      userId,
+      name,
+      email,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("7d")
+      .sign(JWT_SECRET);
+
+    const dest = sessionRole === "parent" ? "/parent" : "/dashboard";
+    const res = NextResponse.redirect(new URL(dest, base));
+    res.cookies.set("session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 604800,
+      path: "/",
+      sameSite: "lax",
+    });
+    return res;
+  } catch (e) {
+    console.error("Google OAuth callback (DB/session):", e);
+    return loginRedirect("google_server_error");
+  }
 }
 
 function escapeRegex(s: string) {
