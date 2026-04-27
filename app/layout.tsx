@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import "@/lib/suppress-hydration";
 import HydrationSuppressor from "@/components/HydrationSuppressor";
+import SessionSync from "@/components/SessionSync";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} bg-[#0f0f1a] text-slate-100 antialiased`} suppressHydrationWarning>
         <HydrationSuppressor />
+        <SessionSync />
         {children}
       </body>
     </html>

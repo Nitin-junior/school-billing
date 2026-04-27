@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   '/login',
   '/api/auth/send-otp',
   '/api/auth/verify-otp',
+  '/api/auth/google',
   '/api/health',
   '/api/parent/activate-whatsapp',
   '/api/public',                    // public bill viewer API (no auth)

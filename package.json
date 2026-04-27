@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/run-next-build.mjs",
     "start": "next start",
     "lint": "next lint",
     "seed": "bun run scripts/seed.ts",
-    "setup:parent": "bun run scripts/setup-parent.ts"
+    "setup:parent": "bun run scripts/setup-parent.ts",
+    "add-google-admin": "bun run scripts/add-google-admin.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.0",
