@@ -27,15 +27,29 @@ export async function verifyOAuthState(
   }
 }
 
+/**
+ * Canonical site URL for OAuth redirects. Order matters on Vercel:
+ * - APP_BASE_URL: optional explicit canonical URL (custom domain).
+ * - VERCEL_URL: runtime deployment host (avoids NEXT_PUBLIC_* baked at build time mismatching token exchange).
+ * - NEXT_PUBLIC_APP_URL: local / static deploys.
+ */
 export function getAppBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL)
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  const trimEnd = (s: string) => s.trim().replace(/\/$/, "");
+  if (process.env.APP_BASE_URL?.trim()) {
+    return trimEnd(process.env.APP_BASE_URL);
+  }
+  if (process.env.VERCEL_URL) {
+    const host = process.env.VERCEL_URL.replace(/^https?:\/\//i, "");
+    return `https://${host}`;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL?.trim()) {
+    return trimEnd(process.env.NEXT_PUBLIC_APP_URL);
+  }
   return "http://localhost:3000";
 }
 
 export function googleAuthUrl(redirectUri: string, state: string): string {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   if (!clientId) throw new Error("GOOGLE_CLIENT_ID is not set");
   const params = new URLSearchParams({
     client_id: clientId,
@@ -53,13 +67,18 @@ export async function exchangeCodeForTokens(
   code: string,
   redirectUri: string
 ): Promise<{ access_token: string }> {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) {
+    throw new Error("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing");
+  }
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: clientId,
+      client_secret: clientSecret,
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),

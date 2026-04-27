@@ -200,9 +200,10 @@ export default function LoginPage() {
         google_not_configured: 'Google Sign-In is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the server environment.',
         google_access_denied: 'Google sign-in was cancelled.',
         google_parent_email_not_registered: 'This Google account email is not linked to a parent record. Ask the school to add your email in the parent profile, or use WhatsApp OTP instead.',
-        google_staff_email_not_registered: 'This Google account email is not in the school staff list. Use the email registered in the system, or use phone OTP.',
-        google_token_failed: 'Could not complete Google sign-in. Try again or use phone OTP.',
-        google_no_email: 'Your Google account has no email. Use a different account or phone OTP.',
+        google_staff_email_not_registered: 'This Google email is not registered as staff in the system. Ask an admin to add your email to the staff list—then Google sign-in works without OTP.',
+        google_token_failed:
+          'Google could not finish verifying the app (often redirect URL or Client Secret on the server). In Vercel check GOOGLE_CLIENT_* and redeploy; Console redirect URI must match https://YOUR-HOST/api/auth/google/callback. Phone OTP is only a backup.',
+        google_no_email: 'Your Google account has no email on file with Google.',
         google_invalid_state: 'Session expired. Please try Google sign-in again.',
         google_missing_code: 'Google did not return a code. Please try again.',
       };
