@@ -8,6 +8,7 @@ import {
   exchangeCodeForTokens,
   fetchGoogleUserInfo,
   getAppBaseUrl,
+  getGoogleOAuthRedirectUri,
 } from "@/lib/google-oauth";
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
   }
 
   const base = getAppBaseUrl();
-  const redirectUri = `${base}/api/auth/google/callback`;
+  const redirectUri = getGoogleOAuthRedirectUri();
 
   let accessToken: string;
   let profile: { email: string; name: string };

@@ -27,25 +27,46 @@ export async function verifyOAuthState(
   }
 }
 
+const CALLBACK_PATH = "/api/auth/google/callback";
+
 /**
- * Canonical site URL for OAuth redirects. Order matters on Vercel:
- * - APP_BASE_URL: optional explicit canonical URL (custom domain).
- * - VERCEL_URL: runtime deployment host (avoids NEXT_PUBLIC_* baked at build time mismatching token exchange).
- * - NEXT_PUBLIC_APP_URL: local / static deploys.
+ * Canonical site URL (pages, redirects to /login). For **OAuth redirect URI** use
+ * `getGoogleOAuthRedirectUri()` instead — that can be overridden independently.
+ *
+ * Order (Vercel):
+ * - APP_BASE_URL: custom domain / fixed host
+ * - NEXT_PUBLIC_APP_URL: set to your production URL so Preview deployments don’t send a different host than Google Console (avoids redirect_uri_mismatch).
+ * - VERCEL_URL: current deployment host (preview branch URLs differ from production — only rely on this if Console lists every preview URL, or use GOOGLE_REDIRECT_URI).
  */
 export function getAppBaseUrl(): string {
   const trimEnd = (s: string) => s.trim().replace(/\/$/, "");
   if (process.env.APP_BASE_URL?.trim()) {
     return trimEnd(process.env.APP_BASE_URL);
   }
+  if (process.env.NEXT_PUBLIC_APP_URL?.trim()) {
+    return trimEnd(process.env.NEXT_PUBLIC_APP_URL);
+  }
   if (process.env.VERCEL_URL) {
     const host = process.env.VERCEL_URL.replace(/^https?:\/\//i, "");
     return `https://${host}`;
   }
-  if (process.env.NEXT_PUBLIC_APP_URL?.trim()) {
-    return trimEnd(process.env.NEXT_PUBLIC_APP_URL);
-  }
   return "http://localhost:3000";
+}
+
+/**
+ * Exact redirect_uri for Google OAuth (authorize + token exchange). Must match
+ * Google Cloud Console “Authorized redirect URIs” byte-for-byte.
+ *
+ * Optional: set `GOOGLE_REDIRECT_URI` to the full URL, e.g.
+ * `https://school-billing-topaz.vercel.app/api/auth/google/callback`
+ * (not `/api/auth/callback/google` — this app uses `/api/auth/google/callback`).
+ */
+export function getGoogleOAuthRedirectUri(): string {
+  const explicit = process.env.GOOGLE_REDIRECT_URI?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+  return `${getAppBaseUrl()}${CALLBACK_PATH}`;
 }
 
 export function googleAuthUrl(redirectUri: string, state: string): string {

@@ -3,6 +3,7 @@ import {
   signOAuthState,
   googleAuthUrl,
   getAppBaseUrl,
+  getGoogleOAuthRedirectUri,
   type OAuthRole,
 } from "@/lib/google-oauth";
 
@@ -20,8 +21,7 @@ export async function GET(req: NextRequest) {
         ? roleParam
         : "parent";
 
-    const base = getAppBaseUrl();
-    const redirectUri = `${base}/api/auth/google/callback`;
+    const redirectUri = getGoogleOAuthRedirectUri();
     const state = await signOAuthState(role);
     const url = googleAuthUrl(redirectUri, state);
     return NextResponse.redirect(url);
